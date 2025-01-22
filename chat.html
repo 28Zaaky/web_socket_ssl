@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>Chat App</title>
+    <link
+      rel="stylesheet"
+      href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css"
+    />
+    <style>
+      /* Styles pour la mise en page */
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #f4f7f6;
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        overflow: hidden; /* Empêche le scroll global de la page */
+      }
+
+      .chat-app {
+        display: flex;
+        min-height: 100vh;
+        flex-direction: column;
+      }
+
+      /* Liste des utilisateurs fixe */
+      .people-list {
+        width: 210px;
+        background: #fff;
+        padding: 10px;
+        box-shadow: 2px 0px 5px rgba(0, 0, 0, 0.1);
+        overflow-y: auto;
+        position: fixed;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        z-index: 100;
+      }
+
+      .people-list ul {
+        padding: 0;
+        list-style-type: none;
+      }
+
+      .people-list li {
+        padding: 8px;
+        border-bottom: 1px solid #ddd;
+        display: flex;
+        align-items: center;
+        cursor: pointer;
+      }
+
+      .people-list li:hover {
+        background-color: #f0f0f0;
+      }
+
+      .people-list li img {
+        width: 35px;
+        border-radius: 50%;
+        margin-right: 10px;
+      }
+
+      .people-list li .name {
+        font-size: 14px;
+      }
+
+      .people-list li .status {
+        font-size: 12px;
+        color: #888;
+      }
+
+      /* Section chat */
+      .chat {
+        margin-left: 230px;
+        /* Espace pour la liste des utilisateurs */
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+        padding: 10px;
+        position: relative;
+        height: 100%;
+        overflow-y: auto; /* Ajoute le scroll pour l'historique des messages */
+      }
+
+      /* En-tête du chat (fixe en haut) */
+      .chat-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 2px solid #ddd;
+        padding: 10px;
+        background-color: #fff;
+        position: sticky;
+        /* Fixe l'en-tête au haut de la section */
+        top: 0;
+        /* Garde l'en-tête toujours visible en haut */
+        z-index: 10;
+        /* Assure que l'en-tête est au-dessus des autres éléments */
+      }
+
+      .chat-header img {
+        width: 35px;
+        border-radius: 50%;
+      }
+
+      .chat-header div {
+        flex-grow: 1;
+        padding-left: 10px;
+      }
+
+      /* Historique du chat (défile en dessous de l'en-tête fixe) */
+      .chat-history {
+        flex-grow: 1;
+        overflow-y: auto;
+        padding: 10px;
+        margin-bottom: 70px;
+      }
+
+      .chat-history ul {
+        padding: 0;
+        list-style-type: none;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        /* Espacement de 8px entre les messages */
+      }
+
+      .chat-history li {
+        position: relative;
+        display: block;
+        /* Assure que les messages s'empilent correctement */
+      }
+
+      /* Messages envoyés par l'utilisateur */
+      .my-message {
+        background-color: #b3e5fc;
+        /* Couleur bleue pour les messages de l'utilisateur */
+        text-align: right;
+        margin-left: auto;
+        margin-right: 20px;
+        /* Décalage à droite */
+        border-radius: 10px;
+        padding: 8px 12px;
+        max-width: 60%;
+        position: relative;
+        display: inline-block;
+      }
+
+      /* Messages reçus */
+      .other-message {
+        background-color: #e1f7d7;
+        /* Couleur verte pour les messages des autres */
+        text-align: left;
+        margin-left: 20px;
+        /* Décalage des messages reçus */
+        border-radius: 10px;
+        padding: 8px 12px;
+        max-width: 60%;
+        display: inline-block;
+        position: relative;
+      }
+
+      /* Barre d'écriture de message fixe en bas */
+      .message-input {
+        display: flex;
+        align-items: center;
+        position: fixed;
+        bottom: 0;
+        left: 225px;
+        right: 0;
+        /* Espace pour la liste des utilisateurs */
+        width: calc(100% - 250px);
+        /* Largeur réduite en tenant compte de la sidebar */
+        background-color: #fff;
+        padding: 15px;
+        border-top: 1px solid #ddd;
+        z-index: 10;
+      }
+
+      .message-input input {
+        flex-grow: 1;
+        padding: 12px;
+        border-radius: 20px;
+        border: 1px solid #ddd;
+        font-size: 14px;
+      }
+
+      /* Bouton envoyer classique */
+      .message-input button {
+        padding: 6px 12px;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 20px;
+        cursor: pointer;
+        margin-left: 10px;
+        font-size: 14px;
+      }
+
+      .message-input button:hover {
+        background-color: #0056b3;
+      }
+
+      /* Icône d'envoi (remplace le bouton envoyer sur mobile) */
+      .message-input .send-icon {
+        display: none;
+        cursor: pointer;
+        font-size: 20px;
+        color: #007bff;
+      }
+
+      /* Styles responsives - Appliqué uniquement aux petits écrans (téléphones) */
+      @media (max-width: 768px) {
+        body {
+          height: 100%;
+          overflow: hidden; /* Empêche le scroll global */
+        }
+
+        .chat-app {
+          flex-direction: column;
+        }
+
+        .people-list {
+          position: relative;
+          width: 100%;
+          height: auto;
+          box-shadow: none;
+          background: #f4f7f6;
+          display: block;
+          /* Liste des utilisateurs devient non fixe sur mobile */
+        }
+
+        .chat {
+          margin-left: 0;
+          padding: 10px;
+          overflow-y: auto;
+        }
+
+        .message-input {
+          position: fixed;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          width: 100%;
+          background-color: #fff;
+          padding: 15px;
+          border-top: 1px solid #ddd;
+          z-index: 10;
+          box-shadow: 0px -2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .message-input input {
+          font-size: 14px;
+          padding: 12px;
+          width: 80%; /* Réduit la largeur de l'input */
+          margin-right: 10px;
+          flex-grow: 0.5; /* Ajuste le flex-grow à 0.5 */
+        }
+
+        .message-input button {
+          display: none; /* Cache le bouton envoyer sur mobile */
+        }
+
+        .message-input .send-icon {
+          display: block; /* Affiche l'icône d'envoi */
+        }
+
+        .chat-history {
+          margin-bottom: 60px;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="chat-app">
+      <!-- Liste des utilisateurs -->
+      <div class="people-list" id="peopleList">
+        <h3>Utilisateurs connectés</h3>
+        <ul id="userList"></ul>
+      </div>
+
+      <!-- Ajout de l'icône d'envoi dans le HTML -->
+      <div class="message-input">
+        <input type="text" placeholder="Écrire un message..." />
+        <button>Envoyer</button>
+        <i class="fas fa-paper-plane send-icon"></i>
+        <!-- Icône d'envoi Font Awesome -->
+      </div>
+
+      <!-- Section chat -->
+      <div class="chat" id="chatSection" style="display: none">
+        <div class="chat-header">
+          <img
+            id="userAvatar"
+            src="https://bootdey.com/img/Content/avatar/avatar2.png"
+            alt="avatar"
+          />
+          <div>
+            <h4 id="chatPartner">Nom de la personne</h4>
+            <small id="lastSeen">En ligne</small>
+          </div>
+        </div>
+        <div class="chat-history" id="chatHistory">
+          <ul id="messageList"></ul>
+        </div>
+        <div class="message-input">
+          <input
+            type="text"
+            id="messageInput"
+            placeholder="Entrez votre message..."
+          />
+          <button id="sendMessageBtn">Envoyer</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+    <script>
+      const socket = io.connect(
+        "https://" + window.location.hostname + ":5001"
+      ); // Connexion sécurisée
+      const username = "{{ username }}"; // Nom d'utilisateur récupéré depuis Flask
+
+      let chatPartner = null; // Variable pour stocker la personne sélectionnée
+
+      // Mettre à jour le nom d'utilisateur
+      document.getElementById("chatPartner").textContent =
+        "Sélectionnez une personne pour discuter"; // Valeur initiale
+
+      // Ajouter l'utilisateur à la liste
+      socket.emit("set_username", username);
+
+      // Recevoir la mise à jour de la liste des utilisateurs
+      socket.on("update_user_list", function (users) {
+        const userList = document.getElementById("userList");
+        userList.innerHTML = ""; // Vider la liste actuelle
+        users.forEach((user) => {
+          if (user !== username) {
+            // Ne pas afficher l'utilisateur lui-même
+            const li = document.createElement("li");
+            li.textContent = user;
+            li.onclick = function () {
+              chatPartner = user; // Mettre à jour la personne avec qui on parle
+              document.getElementById("chatPartner").textContent = user; // Mettre à jour le nom affiché en haut
+              document.getElementById("chatSection").style.display = "block"; // Afficher la section chat
+              socket.emit("set_chat_partner", user); // Vous pouvez aussi émettre cet événement pour gérer cela côté serveur
+            };
+            userList.appendChild(li);
+          }
+        });
+      });
+
+      // Recevoir les messages
+      socket.on("message", function (data) {
+        if (data.username === chatPartner || data.username === username) {
+          const messageList = document.getElementById("messageList");
+          const li = document.createElement("li");
+          const time = new Date(data.timestamp).toLocaleTimeString();
+
+          // Déterminer la classe en fonction de l'utilisateur
+          li.classList.add(
+            data.username === username ? "my-message" : "other-message"
+          );
+          li.innerHTML = `<strong>${data.username}:</strong> ${data.message} <small>${time}</small>`;
+          messageList.appendChild(li);
+          messageList.scrollTop = messageList.scrollHeight; // Faire défiler vers le bas
+        }
+      });
+
+      // Envoyer un message
+      document.getElementById("sendMessageBtn").onclick = function () {
+        const message = document.getElementById("messageInput").value;
+        if (message.trim() !== "") {
+          // Afficher immédiatement le message envoyé
+          const messageList = document.getElementById("messageList");
+          const li = document.createElement("li");
+          const time = new Date().toLocaleTimeString();
+          li.classList.add("my-message");
+          li.innerHTML = `<strong>Moi:</strong> ${message} <small>${time}</small>`;
+          messageList.appendChild(li);
+          messageList.scrollTop = messageList.scrollHeight;
+
+          // Envoyer le message via le socket
+          socket.emit("message", message);
+
+          document.getElementById("messageInput").value = "";
+        }
+      };
+
+      document
+        .getElementById("messageInput")
+        .addEventListener("keypress", function (e) {
+          if (e.key === "Enter") {
+            document.getElementById("sendMessageBtn").click();
+          }
+        });
+    </script>
+  </body>
+</html>
